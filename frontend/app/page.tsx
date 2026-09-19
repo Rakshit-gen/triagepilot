@@ -65,19 +65,22 @@ export default function Home() {
       {error && <p className="mb-4 text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mb-6 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`rounded-full px-3 py-1 text-sm ${
-              filter === f.value
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "border border-zinc-300 dark:border-zinc-700"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const count = f.value === "all" ? tickets.length : tickets.filter((t) => t.status === f.value).length;
+          return (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`rounded-full px-3 py-1 text-sm ${
+                filter === f.value
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "border border-zinc-300 dark:border-zinc-700"
+              }`}
+            >
+              {f.label} ({count})
+            </button>
+          );
+        })}
       </div>
 
       <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
