@@ -11,16 +11,27 @@ const STATUS_STYLES: Record<Ticket["status"], string> = {
   escalated: "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100",
 };
 
+const FILTERS: Array<{ label: string; value: Ticket["status"] | "all" }> = [
+  { label: "All", value: "all" },
+  { label: "Open", value: "open" },
+  { label: "Awaiting approval", value: "awaiting_approval" },
+  { label: "Escalated", value: "escalated" },
+  { label: "Resolved", value: "resolved" },
+];
+
 export default function Home() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [triaging, setTriaging] = useState<number | null>(null);
+  const [filter, setFilter] = useState<Ticket["status"] | "all">("all");
 
   function reload() {
     fetchTickets().then(setTickets).catch((err) => setError(err.message));
   }
 
   useEffect(reload, []);
+
+  const visibleTickets = filter === "all" ? tickets : tickets.filter((t) => t.status === filter);
 
   async function handleTriage(id: number) {
     setTriaging(id);
@@ -48,8 +59,24 @@ export default function Home() {
 
       {error && <p className="mb-4 text-red-600 dark:text-red-400">{error}</p>}
 
+      <div className="mb-6 flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`rounded-full px-3 py-1 text-sm ${
+              filter === f.value
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "border border-zinc-300 dark:border-zinc-700"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-        {tickets.map((t) => (
+        {visibleTickets.map((t) => (
           <div key={t.id} className="flex items-center justify-between gap-4 py-4">
             <div>
               <Link href={`/tickets/${t.id}`} className="font-medium hover:underline">
@@ -73,7 +100,7 @@ export default function Home() {
             </div>
           </div>
         ))}
-        {tickets.length === 0 && <p className="py-8 text-zinc-500">No tickets yet.</p>}
+        {visibleTickets.length === 0 && <p className="py-8 text-zinc-500">No tickets in this view.</p>}
       </div>
     </main>
   );
