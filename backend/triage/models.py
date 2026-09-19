@@ -41,3 +41,37 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"#{self.id} {self.subject}"
+
+
+class AgentRun(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        AWAITING_APPROVAL = "awaiting_approval", "Awaiting approval"
+        ESCALATED = "escalated", "Escalated"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="agent_runs")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RUNNING)
+    proposed_reply = models.TextField(blank=True)
+    escalation_reason = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Run #{self.id} for ticket #{self.ticket_id} ({self.status})"
+
+
+class AgentStep(models.Model):
+    run = models.ForeignKey(AgentRun, on_delete=models.CASCADE, related_name="steps")
+    step_number = models.PositiveIntegerField()
+    thought = models.TextField()
+    tool_name = models.CharField(max_length=100, blank=True)
+    tool_args = models.JSONField(default=dict)
+    observation = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["step_number"]
+
+    def __str__(self):
+        return f"Step {self.step_number} of run #{self.run_id}: {self.tool_name or 'finish'}"
