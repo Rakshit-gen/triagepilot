@@ -1,8 +1,13 @@
+import os
+from unittest import mock
+
 from django.test import TestCase
 from django.utils import timezone
 
 from .engine import run_agent
+from .llm import MockLLMClient
 from .models import AgentRun, Customer, KnowledgeArticle, Ticket
+from .openai_client import OpenAIClient, get_llm_client
 from .tools import ToolRegistry, Tool, build_default_registry
 
 
@@ -125,3 +130,18 @@ class TriageApiTests(TestCase):
         self.ticket.refresh_from_db()
         self.assertEqual(run.status, AgentRun.Status.REJECTED)
         self.assertEqual(self.ticket.status, Ticket.Status.OPEN)
+
+
+class GetLlmClientTests(TestCase):
+    def test_defaults_to_mock_without_api_key(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertIsInstance(get_llm_client(), MockLLMClient)
+
+    def test_uses_real_client_when_api_key_present(self):
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            self.assertIsInstance(get_llm_client(), OpenAIClient)
+
+    def test_openai_client_requires_a_key(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(KeyError):
+                OpenAIClient()
