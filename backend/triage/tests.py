@@ -83,3 +83,45 @@ class ToolRegistryTests(TestCase):
         registry.register(Tool("echo", "echoes back", lambda value: {"value": value}))
         result = registry.call("echo", {"value": "hi"})
         self.assertEqual(result.output, {"value": "hi"})
+
+
+class TriageApiTests(TestCase):
+    def setUp(self):
+        self.now = timezone.now()
+        self.customer = Customer.objects.create(
+            email="dana@acme.com", name="Dana", signed_up_at=self.now,
+        )
+        self.ticket = Ticket.objects.create(
+            customer=self.customer, subject="dashboard export", body="need a CSV export",
+            created_at=self.now,
+        )
+
+    def test_triage_endpoint_creates_a_run_and_updates_ticket_status(self):
+        response = self.client.post(f"/api/tickets/{self.ticket.id}/triage/")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["status"], "awaiting_approval")
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.AWAITING_APPROVAL)
+
+    def test_triage_endpoint_404s_for_missing_ticket(self):
+        response = self.client.post("/api/tickets/999/triage/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_approve_marks_run_approved_and_ticket_resolved(self):
+        run = run_agent(self.ticket)
+        response = self.client.post(f"/api/runs/{run.id}/approve/", data={"reply": "edited reply"}, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        run.refresh_from_db()
+        self.ticket.refresh_from_db()
+        self.assertEqual(run.status, AgentRun.Status.APPROVED)
+        self.assertEqual(run.proposed_reply, "edited reply")
+        self.assertEqual(self.ticket.status, Ticket.Status.RESOLVED)
+
+    def test_reject_reopens_ticket(self):
+        run = run_agent(self.ticket)
+        response = self.client.post(f"/api/runs/{run.id}/reject/")
+        self.assertEqual(response.status_code, 200)
+        run.refresh_from_db()
+        self.ticket.refresh_from_db()
+        self.assertEqual(run.status, AgentRun.Status.REJECTED)
+        self.assertEqual(self.ticket.status, Ticket.Status.OPEN)
