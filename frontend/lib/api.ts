@@ -10,6 +10,13 @@ export type Ticket = {
   created_at: string;
 };
 
+export type KnowledgeArticle = {
+  id: number;
+  title: string;
+  body: string;
+  tags: string;
+};
+
 export type AgentStep = {
   id: number;
   step_number: number;
@@ -51,6 +58,9 @@ export const fetchTickets = () =>
   getJson<{ results: Ticket[] }>("/tickets/").then((data) => data.results);
 
 export const fetchTicket = (id: number) => getJson<Ticket>(`/tickets/${id}/`);
+
+export const fetchArticles = () =>
+  getJson<{ results: KnowledgeArticle[] }>("/articles/").then((data) => data.results);
 
 export const fetchRunsForTicket = (ticketId: number) =>
   getJson<{ results: AgentRun[] }>("/runs/").then((data) =>

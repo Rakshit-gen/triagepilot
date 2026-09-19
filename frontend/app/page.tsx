@@ -52,9 +52,14 @@ export default function Home() {
         <p className="mt-1 text-zinc-600 dark:text-zinc-400">
           Agent drafts replies and decides when to escalate. A human approves every send.
         </p>
-        <a href={runsExportUrl()} className="mt-2 inline-block text-sm underline">
-          Export agent run audit trail (CSV)
-        </a>
+        <div className="mt-2 flex gap-4 text-sm">
+          <a href={runsExportUrl()} className="underline">
+            Export agent run audit trail (CSV)
+          </a>
+          <Link href="/articles" className="underline">
+            Knowledge base
+          </Link>
+        </div>
       </header>
 
       {error && <p className="mb-4 text-red-600 dark:text-red-400">{error}</p>}
