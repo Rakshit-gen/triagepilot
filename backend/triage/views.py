@@ -1,3 +1,6 @@
+import csv
+
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -31,6 +34,25 @@ class TicketViewSet(viewsets.ModelViewSet):
 class AgentRunViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AgentRun.objects.select_related("ticket").prefetch_related("steps").order_by("-started_at")
     serializer_class = AgentRunSerializer
+
+
+class AgentRunsCsvView(APIView):
+    """Downloadable audit trail of every agent decision, for a support lead's review."""
+
+    def get(self, request):
+        runs = AgentRun.objects.select_related("ticket").order_by("-started_at")
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="triagepilot_agent_runs.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["run_id", "ticket_id", "ticket_subject", "status", "proposed_reply", "escalation_reason", "started_at", "decided_at"])
+        for run in runs:
+            writer.writerow([
+                run.id, run.ticket_id, run.ticket.subject, run.status,
+                run.proposed_reply, run.escalation_reason, run.started_at, run.decided_at,
+            ])
+        return response
 
 
 class TriageTicketView(APIView):
