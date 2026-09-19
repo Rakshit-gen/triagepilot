@@ -1,7 +1,8 @@
 from django.utils import timezone
 
-from .llm import LLMClient, MockLLMClient
+from .llm import LLMClient
 from .models import AgentRun, AgentStep, Ticket
+from .openai_client import get_llm_client
 from .tools import build_default_registry
 
 MAX_STEPS = 6
@@ -11,7 +12,7 @@ def run_agent(ticket: Ticket, llm: LLMClient | None = None) -> AgentRun:
     """Drive one ticket through the observe -> plan -> act loop until the
     planner finishes (proposes a reply, escalates, or hits the step budget).
     """
-    llm = llm or MockLLMClient()
+    llm = llm or get_llm_client()
     registry = build_default_registry()
     run = AgentRun.objects.create(ticket=ticket)
     history: list[dict] = []
